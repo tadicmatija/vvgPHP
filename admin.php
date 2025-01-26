@@ -1,9 +1,13 @@
 <?php
 session_start();
+include 'config.php';
 
-// Initialize users array in session if it doesn't exist
-if (!isset($_SESSION['users'])) {
-    $_SESSION['users'] = [];
+// Fetch users from database
+try {
+    $stmt = $pdo->query("SELECT * FROM users ORDER BY created_at DESC");
+    $users = $stmt->fetchAll();
+} catch (PDOException $e) {
+    $users = [];
 }
 ?>
 <!DOCTYPE html>
@@ -17,7 +21,7 @@ if (!isset($_SESSION['users'])) {
     <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Your existing navbar here -->
+    <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="index.php">PHP projekt</a>
@@ -62,50 +66,50 @@ if (!isset($_SESSION['users'])) {
 
     <main class="container my-4">
         <h1 class="mb-4">Administration</h1>
-
-        <!-- Add User Form -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h2 class="h5 mb-0">Add New User</h2>
+        
+        <div class="row mb-5">
+            <div class="col-md-6">
+                <img src="images/admin-image.jpg" alt="Administration" class="img-fluid rounded shadow" style="width: 300px; height: 200px !important; object-fit: cover;">
+                <p class="text-muted mt-2">Manage users</p>
             </div>
-            <div class="card-body">
-                <form action="process_admin.php" method="POST">
-                    <input type="hidden" name="action" value="add">
-                    <div class="row">
-                        <div class="col-md-5">
+            <div class="col-md-6">
+                <!-- Add User Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="h5 mb-0">Add New User</h2>
+                    </div>
+                    <div class="card-body">
+                        <form action="process_admin.php" method="POST">
+                            <input type="hidden" name="action" value="add">
                             <div class="mb-3">
-                                <label for="name" class="form-label">Name</label>
-                                <input type="text" class="form-control" id="name" name="name" required>
+                                <label for="firstname" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="firstname" name="firstname" required>
                             </div>
-                        </div>
-                        <div class="col-md-5">
                             <div class="mb-3">
                                 <label for="lastname" class="form-label">Last Name</label>
                                 <input type="text" class="form-control" id="lastname" name="lastname" required>
                             </div>
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary mb-3">Add User</button>
-                        </div>
+                            <button type="submit" class="btn btn-primary">Add User</button>
+                        </form>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
 
         <!-- Users Display -->
         <div class="row">
-            <?php if (!empty($_SESSION['users'])): ?>
-                <?php foreach ($_SESSION['users'] as $id => $user): ?>
+            <?php if (!empty($users)): ?>
+                <?php foreach ($users as $user): ?>
                     <div class="col-md-4 mb-4">
                         <div class="card">
                             <div class="card-body">
-                                <h3 class="card-title h5"><?php echo htmlspecialchars($user['name'] . ' ' . $user['lastname']); ?></h3>
+                                <h3 class="card-title h5"><?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?></h3>
                                 <div class="mt-3">
-                                    <button class="btn btn-sm btn-warning me-2" onclick="editUser(<?php echo $id; ?>)">Edit</button>
+                                    <button class="btn btn-sm btn-warning me-2" onclick='editUser(<?php echo json_encode($user); ?>)'>Edit</button>
                                     <form action="process_admin.php" method="POST" class="d-inline">
                                         <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="id" value="<?php echo $id; ?>">
-                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
                                     </form>
                                 </div>
                             </div>
@@ -114,7 +118,7 @@ if (!isset($_SESSION['users'])) {
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="col-12">
-                    <p class="text-muted">No users added yet.</p>
+                    <p class="text-muted">No users found.</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -133,7 +137,7 @@ if (!isset($_SESSION['users'])) {
                             <input type="hidden" name="id" id="edit_id">
                             <div class="mb-3">
                                 <label for="edit_name" class="form-label">Name</label>
-                                <input type="text" class="form-control" id="edit_name" name="name" required>
+                                <input type="text" class="form-control" id="edit_name" name="firstname" required>
                             </div>
                             <div class="mb-3">
                                 <label for="edit_lastname" class="form-label">Last Name</label>
@@ -165,12 +169,9 @@ if (!isset($_SESSION['users'])) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    function editUser(id) {
-        const users = <?php echo json_encode($_SESSION['users'] ?? []); ?>;
-        const user = users[id];
-        
-        document.getElementById('edit_id').value = id;
-        document.getElementById('edit_name').value = user.name;
+    function editUser(user) {
+        document.getElementById('edit_id').value = user.id;
+        document.getElementById('edit_name').value = user.firstname;
         document.getElementById('edit_lastname').value = user.lastname;
         
         new bootstrap.Modal(document.getElementById('editModal')).show();

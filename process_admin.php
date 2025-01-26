@@ -1,41 +1,47 @@
 <?php
-session_start();
-
-if (!isset($_SESSION['users'])) {
-    $_SESSION['users'] = [];
-}
+include 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'];
 
     switch ($action) {
         case 'add':
-            $id = time();
-            $_SESSION['users'][$id] = [
-                'name' => $_POST['name'],
-                'lastname' => $_POST['lastname']
-            ];
+            try {
+                $stmt = $pdo->prepare("INSERT INTO users (firstname, lastname) VALUES (?, ?)");
+                $stmt->execute([
+                    $_POST['firstname'],    
+                    $_POST['lastname'] 
+                ]);
+                header('Location: admin.php?success=added');
+            } catch (PDOException $e) {
+                echo "Error: " . $e->getMessage(); // For testing - remove in production
+                // header('Location: admin.php?error=add_failed');
+            }
             break;
 
         case 'edit':
-            $id = $_POST['id'];
-            if (isset($_SESSION['users'][$id])) {
-                $_SESSION['users'][$id] = [
-                    'name' => $_POST['name'],
-                    'lastname' => $_POST['lastname']
-                ];
+            try {
+                $stmt = $pdo->prepare("UPDATE users SET firstname = ?, lastname = ? WHERE id = ?");
+                $stmt->execute([
+                    $_POST['firstname'],
+                    $_POST['lastname'],
+                    $_POST['id']
+                ]);
+                header('Location: admin.php');
+            } catch (PDOException $e) {
+                header('Location: admin.php?error=update_failed');
             }
             break;
 
         case 'delete':
-            $id = $_POST['id'];
-            if (isset($_SESSION['users'][$id])) {
-                unset($_SESSION['users'][$id]);
+            try {
+                $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+                $stmt->execute([$_POST['id']]);
+                header('Location: admin.php');
+            } catch (PDOException $e) {
+                header('Location: admin.php?error=delete_failed');
             }
             break;
     }
 }
-
-header('Location: admin.php');
-exit();
 ?>

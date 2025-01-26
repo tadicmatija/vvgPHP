@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
     try {
+        // Check if username or email already exists
         $check = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ? OR email = ?");
         $check->execute([$username, $email]);
         $exists = $check->fetchColumn();
@@ -19,9 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
 
+        // Insert new user
         $stmt = $pdo->prepare("INSERT INTO users (firstname, lastname, email, username, password) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([$name, $lastname, $email, $username, $password]);
 
+        // Redirect to admin page instead of homepage
         header("Location: admin.php?success=registered");
         exit();
 
